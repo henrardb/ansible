@@ -1,0 +1,100 @@
+---
+- name: Ensure nodes got the necessary packets
+  hosts: all_nodes
+  gather_facts: yes
+
+  tasks:
+    ###################################################
+    # Packages install / uninstall                  
+    ###################################################
+    - name: Install vim
+      ansible.builtin.package:
+        name: vim
+        state: present
+      become: yes
+
+    - name: Uninstall httpd
+      ansible.builtin.package:
+        name: httpd
+        state: absent
+      become: yes
+
+    - name: Install tcpdump 
+      ansible.builtin.package:
+        name: tcpdump
+        state: present
+      become: yes
+
+    - name: Install group development tools
+      ansible.builtin.dnf:
+        name: '@development-tools'
+        state: present
+      become: yes
+
+    - name: Install nasm 
+      ansible.builtin.package:
+        name: nasm
+        state: present
+      become: yes
+    
+    - name: Install binutils 
+      ansible.builtin.package:
+        name: binutils
+        state: present
+      become: yes
+
+    ###################################################
+    # System update 
+    ###################################################
+    - name: Update system
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      become: yes
+      register: dnf_update_status
+
+    - name: Reboot if needed
+      ansible.builtin.reboot:
+      when: dnf_update_status.reboot_required is defined and dnf_update_status.reboot_required
+      become: yes
+
+    ###################################################
+    # Modification of .bashrc 
+    ###################################################
+    - name: Make sure dnf update comment is not present in .bashrc 
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_user_dir }}/.bashrc"
+        line: '# Added to get up to date VM'
+        state: absent
+
+    - name: Make sure dnf update is not present in .bashrc 
+      ansible.builtin.lineinfile:
+        path: "{{ ansible_user_dir }}/.bashrc"
+        line: 'sudo dnf update'
+        state: absent
+
+    ###################################################
+    # Ensure working dir is present 
+    ###################################################
+    - name: Ensure working dir is present
+      ansible.builtin.file:
+        path: /home/bruno/Training
+        state: directory
+        owner: bruno
+        group: bruno
+        mode: '0755'
+      tags: working_dir_creation
+
+    ###################################################
+    # Training working dir sync 
+    ###################################################
+    - name: Ensure working dir is synchronised to the other nodes
+      ansible.posix.synchronize:
+        src: /home/bruno/Training/
+        dest: /home/bruno/Training/
+        mode: push 
+        archive: yes
+        delete: yes
+      when: inventory_hostname != 'server' 
+      tags: working_dir_sync
