@@ -55,6 +55,24 @@
         state: present
       become: yes
 
+    - name: Install sysstat 
+      ansible.builtin.package:
+        name: sysstat 
+        state: present
+      become: yes
+
+    - name: Install iotop 
+      ansible.builtin.package:
+        name: iotop 
+        state: present
+      become: yes
+
+    - name: Install neovim 
+      ansible.builtin.package:
+        name: neovim 
+        state: present
+      become: yes
+
     ###################################################
     # System update 
     ###################################################
